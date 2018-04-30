@@ -1,34 +1,41 @@
-from bedrock import common
-import bedrock
 import json
-from configparser import ConfigParser
+
+import bedrock
 import dill
-
-config = ConfigParser()
-config.read('config.ini')
+from bedrock import common
 
 
-def predict(text):
-    with open(config['DEFAULT']['sentence_tokenizer'], 'rb') as f:
-        sentence_tokenizer = dill.load(f)
+def predict(text, config):
+    print('Running prediction')
+    print(text)
+    print(config['SENTENCE_TOKENIZER'])
 
-    with open(config['DEFAULT']['preprocessor'], 'rb') as f:
+    with open(config['PREPROCESSOR'], 'rb') as f:
         preprocessor = dill.load(f)
 
-    vectorizer = common.load_pickle(config['DEFAULT']['vectorizer'])
+    vectorizer = common.load_pickle(config['VECTORIZER'])
 
-    model = common.load_pickle(config['DEFAULT']['model'])
+    model = common.load_pickle(config['MODEL'])
+
+    print('bar')
+
+    with open(config['SENTENCE_TOKENIZER'], 'rb') as f:
+        sentence_tokenizer = dill.load(f)
+        print(sentence_tokenizer)
+
 
     result = dict()
     result['result'] = []
 
     # Do text split with another vectorizer
-    sentences = sentence_tokenizer(text)
-    processed_sentences = [preprocessor(s) for s in sentences][0]
+    print('before')
+    sentences = bedrock.process.sentence_tokenize(text)
+    print(sentences)
+    processed_sentences = sentences #[preprocessor(s) for s in sentences][0]
     sentences = sentences[0]  # Don't ask TODO: Fix it
-
+    print('before vectorizer')
     vectors = vectorizer.transform(processed_sentences)
-
+    print(vectors)
     labels = [int(model.predict(v)) for v in vectors]
 
     text_dict = dict()
@@ -42,7 +49,7 @@ def predict(text):
         for sentence, processed_sentence, label
         in zip(sentences, processed_sentences, labels)
     ]
-
+    print('foo')
     # max in order of 5, 4, 2, 1, 3, 0
     score_weight = [0, 2, 3, 1, 4, 5]
     text_dict['overall_label'] = max(
@@ -53,6 +60,7 @@ def predict(text):
     text_dict['overall_label_text'] = label2text(text_dict['overall_label'])
 
     result['result'].append(text_dict)
+    print(result)
 
     return json.dumps(result)
 
@@ -75,3 +83,4 @@ if __name__ == '__main__':
     json_text = predict(
         'Es gibt ein gorsses Tumor. Oder kein Tumor. Was ist Tumor.'
     )
+    print(json_text)
