@@ -1,58 +1,58 @@
 from bedrock import common
+import bedrock
 import json
+from configparser import ConfigParser
+import dill
+
+config = ConfigParser()
+config.read('config.ini')
 
 
-#path = common.get_latest_file('/home/giga')
-_inputs = None #make default if loaded
+def predict(text):
+    with open(config['DEFAULT']['sentence_tokenizer'], 'rb') as f:
+        sentence_tokenizer = dill.load(f)
 
+    with open(config['DEFAULT']['preprocessor'], 'rb') as f:
+        preprocessor = dill.load(f)
 
-def get_inputs():
-    return None, None, None
+    vectorizer = common.load_pickle(config['DEFAULT']['vectorizer'])
 
-import random
-def classify(x):
-    return random.randint(0, 5)
-
-def predict(texts):
-    if type(texts) == str:
-        texts = [texts]
-
-    # TODO: make location
-    inputs = get_inputs()
-
-    # classifier = common.load_pickle(inputs['classifier'])
-    # sentence_spliter = common.load_pickle(inputs['senttence_splitter'])
-    # process_pipeline = common.load_pickle(inputs['process_pipeline'])
+    model = common.load_pickle(config['DEFAULT']['model'])
 
     result = dict()
-    result['texts'] = []
+    result['result'] = []
 
-    for text in texts:
-        # Do text split with another vectorizer
-        segments = text.split('.')
+    # Do text split with another vectorizer
+    sentences = sentence_tokenizer(text)
+    processed_sentences = [preprocessor(s) for s in sentences][0]
+    sentences = sentences[0]  # Don't ask TODO: Fix it
 
-        text_labels = [classify(segment) for segment in segments]
+    vectors = vectorizer.transform(processed_sentences)
 
-        text_dict = dict()
-        text_dict['segments'] = [
-            {
-                'bedrock': segment,
-                'label': label,
-                'label_text': label2text(label)
-            }
-            for segment, label in zip(segments, text_labels)
-        ]
+    labels = [int(model.predict(v)) for v in vectors]
 
-        # max in order of 5, 4, 2, 1, 3, 0
-        score_weight = [0, 2, 3, 1, 4, 5]
-        text_dict['overall_label'] = max(
-            text_labels,
-            key=lambda x: score_weight[x]
-        )
+    text_dict = dict()
+    text_dict['segments'] = [
+        {
+            'segment': sentence,
+            'processed_segment': processed_sentence,
+            'label': label,
+            'label_text': label2text(label)
+        }
+        for sentence, processed_sentence, label
+        in zip(sentences, processed_sentences, labels)
+    ]
 
-        text_dict['overall_label_text'] = label2text(text_dict['overall_label'])
+    # max in order of 5, 4, 2, 1, 3, 0
+    score_weight = [0, 2, 3, 1, 4, 5]
+    text_dict['overall_label'] = max(
+        labels,
+        key=lambda x: score_weight[x]
+    )
 
-        result['texts'].append(text_dict)
+    text_dict['overall_label_text'] = label2text(text_dict['overall_label'])
+
+    result['result'].append(text_dict)
 
     return json.dumps(result)
 
@@ -72,9 +72,6 @@ def label2text(label):
 if __name__ == '__main__':
     print('Running playground, not meant for production.')
 
-    jtext = predict(
-        ['abc es gibt ein gorsses tumor. oder kein tumor. was ist tumor.',
-         '123 123 aaa vvv kein tumor. etwas neues.']
+    json_text = predict(
+        'Es gibt ein gorsses Tumor. Oder kein Tumor. Was ist Tumor.'
     )
-    print(jtext)
-
