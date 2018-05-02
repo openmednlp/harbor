@@ -4,21 +4,18 @@ from flask import request, Flask
 
 from configparser import ConfigParser
 
-app = Flask(__name__)
-
+app = Flask(__name__, instance_relative_config=True)
+app.config.from_object('harbor.default_config')
 app.config.from_pyfile('config.cfg', silent=False)
-print(app.config)
+
+
+@app.route('/')
+def root():
+    return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
 
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    print('------------------------------------asssssssssssssssssssssssssssssss')
-    print(request.form)
     input_text = request.form['input_text']
-    print(input_text)
-    print('..................................')
-    print(type(input_text))
     response = gastro_predict(input_text, app.config)
-    print('..................................')
-    print(response)
     return response

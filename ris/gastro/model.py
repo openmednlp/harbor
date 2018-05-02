@@ -4,20 +4,21 @@ import json
 from configparser import ConfigParser
 import dill
 
-config = ConfigParser()
-config.read('/home/giga/dev/python/harbor/ris/gastro/config.ini')
 
-
-def predict(text):
-    with open(config['DEFAULT']['sentence_tokenizer'], 'rb') as f:
+def predict(text, config):
+    print('run')
+    print(config['SENTENCE_TOKENIZER'])
+    with open(config['SENTENCE_TOKENIZER'], 'rb') as f:
         sentence_tokenizer = dill.load(f)
+        print('loaded')
 
-    with open(config['DEFAULT']['preprocessor'], 'rb') as f:
+    with open(config['PREPROCESSOR'], 'rb') as f:
         preprocessor = dill.load(f)
+        print('loaded')
 
-    vectorizer = common.load_pickle(config['DEFAULT']['vectorizer'])
-
-    model = common.load_pickle(config['DEFAULT']['model'])
+    vectorizer = common.load_pickle(config['VECTORIZER'])
+    
+    model = common.load_pickle(config['MODEL'])
 
     result = dict()
     result['result'] = []
