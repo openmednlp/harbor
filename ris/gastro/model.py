@@ -5,15 +5,19 @@ from configparser import ConfigParser
 import dill
 
 config = ConfigParser()
-config.read('/home/giga/dev/python/harbor/ris/gastro/config.ini')
+config.read('/home/giga/dev/python/shipyard/ris/gastro/config.ini')
 
 
 def predict(text):
+    with open(config['DEFAULT']['impression_extractor'], 'rb') as f:
+        impression_extractor = dill.load(f)
+
     with open(config['DEFAULT']['sentence_tokenizer'], 'rb') as f:
         sentence_tokenizer = dill.load(f)
 
     with open(config['DEFAULT']['preprocessor'], 'rb') as f:
         preprocessor = dill.load(f)
+
 
     vectorizer = common.load_pickle(config['DEFAULT']['vectorizer'])
 
@@ -22,8 +26,10 @@ def predict(text):
     result = dict()
     result['result'] = []
 
-    # Do text split with another vectorizer
-    sentences = sentence_tokenizer(text)
+    impression = impression_extractor(text)
+    if not impression:
+        return json.dumps({})
+    sentences = sentence_tokenizer(impression)
     processed_sentences = [preprocessor(s) for s in sentences][0]
     sentences = sentences[0]  # Don't ask TODO: Fix it
 
@@ -42,6 +48,10 @@ def predict(text):
         for sentence, processed_sentence, label
         in zip(sentences, processed_sentences, labels)
     ]
+
+    text_dict['report'] = text
+
+    text_dict['impression'] = impression
 
     # max in order of 5, 4, 2, 1, 3, 0
     score_weight = [0, 2, 3, 1, 4, 5]
@@ -73,5 +83,17 @@ if __name__ == '__main__':
     print('Running playground, not meant for production.')
 
     json_text = predict(
-        'Es gibt ein gorsses Tumor. Oder kein Tumor. Was ist Tumor.'
+        '''
+        Unknown Header
+        
+        Something before in another header.
+        
+        Beurteilung
+        
+        Es gibt ein gorsses Tumor. Oder kein Tumor. Was ist Tumor.
+        Und jetzt...nichts.
+        
+        Ciao!
+        '''
     )
+    print(json_text)
