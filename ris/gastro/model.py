@@ -4,27 +4,22 @@ import json
 from configparser import ConfigParser
 import dill
 
-config = ConfigParser()
-config.read('/home/giga/dev/python/shipyard/ris/gastro/config.ini')
 
-
-def predict(text):
-    with open(config['DEFAULT']['impression_extractor'], 'rb') as f:
+def predict(text, config):
+    with open(config['IMPRESSION_EXTRACTOR'], 'rb') as f:
         impression_extractor = dill.load(f)
 
-    with open(config['DEFAULT']['sentence_tokenizer'], 'rb') as f:
+    with open(config['SENTENCE_TOKENIZER'], 'rb') as f:
         sentence_tokenizer = dill.load(f)
 
-    with open(config['DEFAULT']['preprocessor'], 'rb') as f:
+    with open(config['PREPROCESSOR'], 'rb') as f:
         preprocessor = dill.load(f)
 
-
-    vectorizer = common.load_pickle(config['DEFAULT']['vectorizer'])
-
-    model = common.load_pickle(config['DEFAULT']['model'])
+    vectorizer = common.load_pickle(config['VECTORIZER'])
+    model = common.load_pickle(config['MODEL'])
 
     result = dict()
-    result['result'] = []
+    result['result'] = None
 
     impression = impression_extractor(text)
     if not impression:
@@ -59,10 +54,8 @@ def predict(text):
         labels,
         key=lambda x: score_weight[x]
     )
-
     text_dict['overall_label_text'] = label2text(text_dict['overall_label'])
-
-    result['result'].append(text_dict)
+    result['result'] = text_dict
 
     return json.dumps(result)
 
@@ -94,6 +87,7 @@ if __name__ == '__main__':
         Und jetzt...nichts.
         
         Ciao!
-        '''
+        ''',
+        None
     )
     print(json_text)
