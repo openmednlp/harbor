@@ -6,22 +6,17 @@ import dill
 
 
 def predict(text, config):
-    print('run')
-    print(config['SENTENCE_TOKENIZER'])
     with open(config['SENTENCE_TOKENIZER'], 'rb') as f:
         sentence_tokenizer = dill.load(f)
-        print('loaded')
 
     with open(config['PREPROCESSOR'], 'rb') as f:
         preprocessor = dill.load(f)
-        print('loaded')
 
     vectorizer = common.load_pickle(config['VECTORIZER'])
-    
     model = common.load_pickle(config['MODEL'])
 
     result = dict()
-    result['result'] = []
+    result['result'] = None
 
     # Do text split with another vectorizer
     sentences = sentence_tokenizer(text)
@@ -50,10 +45,8 @@ def predict(text, config):
         labels,
         key=lambda x: score_weight[x]
     )
-
     text_dict['overall_label_text'] = label2text(text_dict['overall_label'])
-
-    result['result'].append(text_dict)
+    result['result'] = text_dict
 
     return json.dumps(result)
 
