@@ -1,7 +1,5 @@
 from bedrock import common
-import bedrock
 import json
-from configparser import ConfigParser
 import dill
 
 
@@ -20,10 +18,13 @@ def predict(text, config):
 
     result = dict()
     result['result'] = None
-
+    text_dict = dict()
     impression = impression_extractor(text)
     if not impression:
-        return json.dumps({})
+        text_dict['status'] = 'Error'
+        text_dict['status_description'] = 'No impressions detected.'
+        result['result'] = text_dict
+        return json.dumps(result)
     sentences = sentence_tokenizer(impression)
     processed_sentences = [preprocessor(s) for s in sentences][0]
     sentences = sentences[0]  # Don't ask TODO: Fix it
@@ -32,7 +33,6 @@ def predict(text, config):
 
     labels = [int(model.predict(v)) for v in vectors]
 
-    text_dict = dict()
     text_dict['segments'] = [
         {
             'segment': sentence,
@@ -55,6 +55,10 @@ def predict(text, config):
         key=lambda x: score_weight[x]
     )
     text_dict['overall_label_text'] = label2text(text_dict['overall_label'])
+
+    text_dict['status'] = 'Success'
+    text_dict['status_description'] = 'Everything is A-OK'
+
     result['result'] = text_dict
 
     return json.dumps(result)
@@ -70,24 +74,3 @@ def label2text(label):
         5: 'Positive'
     }
     return label_dict[label]
-
-
-if __name__ == '__main__':
-    print('Running playground, not meant for production.')
-
-    json_text = predict(
-        '''
-        Unknown Header
-        
-        Something before in another header.
-        
-        Beurteilung
-        
-        Es gibt ein gorsses Tumor. Oder kein Tumor. Was ist Tumor.
-        Und jetzt...nichts.
-        
-        Ciao!
-        ''',
-        None
-    )
-    print(json_text)
