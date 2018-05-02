@@ -5,7 +5,7 @@ from configparser import ConfigParser
 import dill
 
 config = ConfigParser()
-config.read('config.ini')
+config.read('/home/giga/dev/python/harbor/ris/gastro/config.ini')
 
 
 def predict(text):
